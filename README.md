@@ -47,11 +47,36 @@ pip install -r requirements.txt
 Paste a sample of your app's CLI or Streamlit output here so a reader can see what a generated plan looks like:
 
 ```
-# e.g.:
-# Daily plan for Biscuit (Golden Retriever):
-#   08:00 — Morning walk (30 min) [priority: high]
-#   09:00 — Feeding (10 min) [priority: high]
-#   ...
+====================================================
+  PawPal+ Daily Plan for Alex (Owner)
+====================================================
+  07:05 — [Buddy] Heartworm pill (5 min) [priority: high]
+  07:00 — [Luna] Breakfast (5 min) [priority: high]
+  07:00 — [Buddy] Breakfast (10 min) [priority: high]
+  07:30 — [Buddy] Morning walk (30 min) [priority: high]
+  18:00 — [Buddy] Evening walk (30 min) [priority: high]
+  19:00 — [Luna] Playtime (20 min) [priority: low]
+  --:-- — [Luna] Brushing (15 min) [priority: low]
+
+  Total time: 115 min (1h 55m)
+  Reasoning: Tasks were sorted by priority (high → medium → low), then by duration (shorter first). Owner 'Alex' has 3h (180 min) available on a office day. 7 task(s) scheduled (5 high, 0 medium, 2 low), using 115 min.
+
+────────────────────────────────────────────────────
+  Breakdown by pet
+────────────────────────────────────────────────────
+
+  Buddy (Dog, 3 yr old Male)
+    07:05 — Heartworm pill (5 min) [priority: high]
+    07:00 — Breakfast (10 min) [priority: high]
+    07:30 — Morning walk (30 min) [priority: high]
+    18:00 — Evening walk (30 min) [priority: high]
+
+  Luna (Cat, 2 yr old Female)
+    07:00 — Breakfast (5 min) [priority: high]
+    19:00 — Playtime (20 min) [priority: low]
+    --:-- — Brushing (15 min) [priority: low]
+
+====================================================
 ```
 
 ## 🧪 Testing PawPal+

@@ -2,15 +2,47 @@
 
 ## 1. System Design
 
+Core actions
+1. Add and schedule a pet care task (feeding, walk, medication, etc.)
+2. Set availability and preferences (work schedule, time constraints)
+3. View today's generated care plan
+
+Brainstorming
+- Owner
+  - Attributes: `name`, `work_schedule`, `available_hours`, `preferred_morning_start`, `preferred_evening_end`
+  - Methods: `get_name()`, `set_availability()`, `get_availability()`
+
+- Pet
+  - Attributes: `name`, `species`, `gender`, `age`, `health_history`, `medical_needs`, `owner`, `tasks`
+  - Methods: `get_name()`, `get_species()`, `get_age()`, `get_medical_needs()`, `add_task()`, `get_tasks()`
+
+- Task
+  - Attributes: `name`, `duration`, `priority`, `type`, `scheduled_time`, `is_completed`
+  - Methods: `get_name()`, `get_duration()`, `get_priority()`, `get_type()`, `set_priority()`, `mark_complete()`
+
+- Schedule
+  - Attributes: `owner`, `pets`, `tasks`, `generated_plan`, `reasoning`
+  - Methods: `generate_plan()`, `explain_reasoning()`, `display_plan()`
+
 **a. Initial design**
 
 - Briefly describe your initial UML design.
 - What classes did you include, and what responsibilities did you assign to each?
+  
+  My initial design included three classes: `Owner`, `Pet`, and `Task`. The `Owner` class was responsible for storing personal contact information such as name, phone number, and home address, with simple getter methods to retrieve each attribute. The `Pet` class held descriptive information about each pet including name, species, gender, age, health history, and medical needs, also with getter methods. The `Task` class represented a single care task with attributes for name, duration, priority, and type, again with basic getters.
 
 **b. Design changes**
 
 - Did your design change during implementation?
 - If yes, describe at least one change and why you made it.
+  
+  Yes, the design changed in a few ways during the planning process.
+  
+  The most significant change was to the `Owner` class. The original design focused on contact details, but these turned out to be irrelevant to the core purpose of the app. Since PawPal+ is a scheduling tool, `Owner` needed to hold availability and preference data instead — attributes like `work_schedule`, `available_hours`, `preferred_morning_start`, and `preferred_evening_end`. This change was necessary because the `Schedule` class reads from `Owner` to generate the daily plan, so without this information the scheduling logic would have nothing to work with.
+  
+  The second change was adding a fourth class, `Schedule`, which was not in the original design. As the responsibilities of the app became clearer — particularly the requirement to generate a daily plan and explain its reasoning — it became apparent that this logic was substantial enough to deserve its own class rather than being placed inside `Owner` or `Pet`.
+  
+  Smaller additions were also made to `Pet` and `Task`: `Pet` gained an owner attribute and a tasks list to reflect real-world relationships between objects, and `Task` gained `scheduled_time` and `is_completed` to support time placement and progress tracking.
 
 ---
 
