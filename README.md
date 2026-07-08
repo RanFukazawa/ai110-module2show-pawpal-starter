@@ -123,7 +123,7 @@ python -m pytest --cov
 ### Sample test output
 
 ```
-======================================================= test session starts ========================================================
+======================================= test session starts =======================================
 platform darwin -- Python 3.14.2, pytest-9.1.1, pluggy-1.6.0
 rootdir: /Users/ranfukazawa/Desktop/CodePath/AI110/Project/ai110-module2show-pawpal-starter
 plugins: anyio-4.14.0
@@ -131,7 +131,7 @@ collected 21 items
 
 tests/test_pawpal.py .....................                                                                                   [100%]
 
-======================================================== 21 passed in 0.05s ========================================================
+======================================= 21 passed in 0.05s ========================================
 ```
 
 ## 📐 Smarter Scheduling
@@ -146,12 +146,22 @@ tests/test_pawpal.py .....................                                      
 
 ## 📸 Demo Walkthrough
 
-Describe your app in numbered steps so a reader can follow along without watching a video:
+### UI workflow
 
-1. <!-- Describe this step -->
-2. <!-- Describe this step -->
-3. <!-- Describe this step -->
-4. <!-- Describe this step -->
-5. <!-- Add more steps as needed -->
+1. **Enter owner info** — fill in your name, select your work schedule type (office, remote, or off day), set your free hours using the slider, and save. This tells the scheduler how much time it has to work with.
+
+2. **Add your pets** — enter each pet's name, species, gender, age, and any health or medical notes. Each pet is registered under the owner and appears in a running list below the form. Individual pets can be removed using the 🗑️ button next to each entry.
+
+3. **Add tasks** — for each pet, add care tasks with a name, type (walk, feeding, medication, grooming, enrichment), duration in minutes, priority level, optional scheduled time, and recurrence frequency (once, daily, or weekly). Tasks appear under each pet as they are added and can be removed individually.
+
+4. **Generate today's plan** — click "Generate schedule". The scheduler collects all pending tasks, sorts them by priority and duration, fits them within your available hours, and sorts the final output chronologically. Any tasks that couldn't fit are reported in the reasoning. Use "🔄 Refresh plan" after making changes to regenerate without scrolling back up.
+
+5. **Review conflict warnings** — if any two tasks overlap in time, an amber warning banner appears above the plan identifying the specific tasks, their times, and the number of minutes of overlap.
+
+6. **Read the plan** — the combined timeline table shows all tasks in chronological order across all pets. The per-pet breakdown below shows each pet's tasks separately. Expand "Why this plan?" to read the scheduler's reasoning.
+
+### Example workflow
+
+> Add owner Alex (office day, 3 free hours) → add dog Buddy and cat Luna → add Breakfast (daily, 07:00) and Morning walk (daily, 07:30) for Buddy → add Breakfast (daily, 07:00) for Luna → generate plan → see conflict warning for overlapping 07:00 Breakfasts → read sorted timeline and per-pet breakdown.
 
 **Screenshot or video** *(optional)*: <!-- Insert a screenshot or link to a demo video here -->
