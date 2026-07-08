@@ -134,12 +134,6 @@ tests/test_pawpal.py .....................                                      
 ======================================================== 21 passed in 0.05s ========================================================
 ```
 
-### Confidence level
-
-⭐⭐⭐⭐ (4/5)
-
-The 21 tests cover all core behaviours — task management, sorting, recurrence, and conflict detection — across both happy paths and edge cases. The rating is 4 rather than 5 because the owner's time window preferences (`preferred_morning_start` / `preferred_evening_end`) are stored but not yet enforced in scheduling, so that logic path has no test coverage yet.
-
 ## 📐 Smarter Scheduling
 
 | Feature | Method(s) | Notes |

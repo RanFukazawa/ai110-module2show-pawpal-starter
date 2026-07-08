@@ -4,7 +4,7 @@ Connects the frontend to the backend logic in pawpal_system.py.
 """
 
 import streamlit as st
-from pawpal_system import Owner, Pet, Task, Scheduler
+from pawpal_system import Owner, Pet, Task, Scheduler, normalize_time
 
 # ---------------------------------------------------------------------------
 # Page config
@@ -58,6 +58,13 @@ if submitted_owner:
     st.session_state.schedule = None  # reset schedule on owner change
     st.success(f"Saved: {owner}")
 
+if st.session_state.owner is not None:
+    if st.button("🗑️ Remove owner (clears all pets and tasks)", key="remove_owner"):
+        st.session_state.owner = None
+        st.session_state.pets = []
+        st.session_state.schedule = None
+        st.rerun()
+
 
 # ---------------------------------------------------------------------------
 # Section 2 — Add a pet
@@ -95,11 +102,23 @@ if submitted_pet:
         st.session_state.schedule = None  # reset schedule on pet change
         st.success(f"Added pet: {pet}")
 
-# Show registered pets
+# Show registered pets with remove buttons
 if st.session_state.pets:
     st.markdown("**Registered pets:**")
-    for p in st.session_state.pets:
-        st.markdown(f"- {p}")
+    for i, p in enumerate(st.session_state.pets):
+        col_pet, col_btn = st.columns([5, 1])
+        with col_pet:
+            st.markdown(f"- {p}")
+        with col_btn:
+            if st.button("🗑️", key=f"remove_pet_{i}", help=f"Remove {p.name}"):
+                # Also remove from owner's pet list
+                if st.session_state.owner is not None:
+                    st.session_state.owner.pets = [
+                        op for op in st.session_state.owner.pets if op.name != p.name
+                    ]
+                st.session_state.pets.pop(i)
+                st.session_state.schedule = None
+                st.rerun()
 
 
 # ---------------------------------------------------------------------------
@@ -121,32 +140,50 @@ else:
             duration        = st.number_input("Duration (minutes)", min_value=1, max_value=240, value=15)
             priority        = st.selectbox("Priority", ["1 — high", "2 — high", "3 — medium", "4 — low", "5 — low"])
             scheduled_time  = st.text_input("Scheduled time (optional)", placeholder="e.g. 07:00")
+            frequency       = st.selectbox("Frequency", ["once", "daily", "weekly"])
 
         submitted_task = st.form_submit_button("Add task")
 
     if submitted_task:
         priority_int = int(priority[0])
-        task = Task(
-            name=task_name,
-            duration=int(duration),
-            priority=priority_int,
-            type=task_type,
-            scheduled_time=scheduled_time,
-        )
-        # Find the right pet and add the task
-        for pet in st.session_state.pets:
-            if pet.name == assign_to:
-                pet.add_task(task)
-                st.session_state.schedule = None  # reset schedule on task change
-                st.success(f"Added task '{task_name}' to {assign_to}.")
-                break
+        normalized_time = normalize_time(scheduled_time)
 
-    # Show current tasks per pet
+        # Warn if user entered something but it couldn't be parsed
+        if scheduled_time.strip() and not normalized_time:
+            st.warning(
+                f"⚠️ '{scheduled_time}' is not a valid time format. "
+                "Please use HH:MM (e.g. 07:00 or 8:30). Task was not added."
+            )
+        else:
+            task = Task(
+                name=task_name,
+                duration=int(duration),
+                priority=priority_int,
+                type=task_type,
+                scheduled_time=scheduled_time,  # __post_init__ normalizes automatically
+                frequency=frequency,
+            )
+            for pet in st.session_state.pets:
+                if pet.name == assign_to:
+                    pet.add_task(task)
+                    st.session_state.schedule = None
+                    time_display = f" at {task.scheduled_time}" if task.scheduled_time else ""
+                    st.success(f"Added task '{task_name}'{time_display} to {assign_to}.")
+                    break
+
+    # Show current tasks per pet with remove buttons
     for pet in st.session_state.pets:
         if pet.get_tasks():
             st.markdown(f"**{pet.name}'s tasks:**")
-            for t in pet.get_tasks():
-                st.markdown(f"- {t}")
+            for i, t in enumerate(pet.get_tasks()):
+                col_task, col_btn = st.columns([5, 1])
+                with col_task:
+                    st.markdown(f"- {t}")
+                with col_btn:
+                    if st.button("🗑️", key=f"remove_task_{pet.name}_{i}", help=f"Remove {t.name}"):
+                        pet.tasks.pop(i)
+                        st.session_state.schedule = None
+                        st.rerun()
 
 
 # ---------------------------------------------------------------------------
@@ -155,7 +192,13 @@ else:
 st.divider()
 st.subheader("4. Generate today's plan")
 
-if st.button("Generate schedule", type="primary"):
+col_gen, col_refresh = st.columns([3, 1])
+with col_gen:
+    generate_clicked = st.button("Generate schedule", type="primary")
+with col_refresh:
+    refresh_clicked = st.button("🔄 Refresh plan", help="Regenerate the plan with current tasks")
+
+if generate_clicked or refresh_clicked:
     if st.session_state.owner is None:
         st.warning("Please save owner info first.")
     elif not st.session_state.pets:
@@ -170,38 +213,69 @@ if st.button("Generate schedule", type="primary"):
 if st.session_state.schedule:
     sched = st.session_state.schedule
     plan  = sched.generated_plan
+    owner = st.session_state.owner
 
     if plan:
-        total = sum(e["duration"] for e in plan)
+        total        = sum(e["duration"] for e in plan)
+        total_avail  = owner.available_hours * 60
+        remaining    = total_avail - total
 
-        # --- Combined timeline ---
-        st.markdown("#### Combined timeline")
-        for entry in plan:
-            time_label     = entry["scheduled_time"] if entry["scheduled_time"] else "--:--"
-            priority_label = Scheduler._priority_label(entry["priority"])
-            st.markdown(
-                f"`{time_label}` — **[{entry['pet']}]** {entry['task']} "
-                f"({entry['duration']} min) `priority: {priority_label}`"
+        st.success(f"Plan generated: {len(plan)} task(s) scheduled, {total} min used, {remaining} min remaining.")
+
+        # --- Conflict warnings ---
+        conflicts = sched.detect_conflicts()
+        if conflicts:
+            for warning in conflicts:
+                st.warning(warning)
+
+        # --- Skipped task warning ---
+        skipped_line = [s for s in sched.reasoning.split(".") if "could not fit" in s]
+        if skipped_line:
+            st.warning(
+                f"⚠️ Some tasks were skipped because they didn't fit in your available time: "
+                f"{skipped_line[0].strip()}. Consider increasing your free hours or reducing task durations."
             )
-        st.markdown(f"**Total time:** {total} min ({total // 60}h {total % 60}m)")
 
-        # --- Reasoning ---
+        # --- Combined timeline as table ---
+        st.markdown("#### Combined timeline")
+        timeline_rows = [
+            {
+                "Time":      entry["scheduled_time"] if entry["scheduled_time"] else "--:--",
+                "Pet":       entry["pet"],
+                "Task":      entry["task"],
+                "Type":      entry["type"],
+                "Duration":  f"{entry['duration']} min",
+                "Priority":  Scheduler._priority_label(entry["priority"]),
+                "Frequency": entry.get("frequency", "once"),
+            }
+            for entry in plan
+        ]
+        st.table(timeline_rows)
+        st.markdown(f"**Total time:** {total} min ({total // 60}h {total % 60}m) of {total_avail} min available.")
+
+        # --- Reasoning expander ---
         with st.expander("Why this plan?"):
             st.info(sched.explain_reasoning())
 
-        # --- Per-pet breakdown ---
+        # --- Per-pet breakdown as tables ---
         st.markdown("#### Breakdown by pet")
-        for pet in st.session_state.owner.pets:
+        for pet in owner.pets:
             pet_entries = [e for e in plan if e["pet"] == pet.name]
             if not pet_entries:
                 continue
             st.markdown(f"**{pet.name}** ({pet.species}, {pet.age} yr old {pet.gender})")
-            for entry in pet_entries:
-                time_label     = entry["scheduled_time"] if entry["scheduled_time"] else "--:--"
-                priority_label = Scheduler._priority_label(entry["priority"])
-                st.markdown(
-                    f"&nbsp;&nbsp;&nbsp;&nbsp;`{time_label}` — {entry['task']} "
-                    f"({entry['duration']} min) `priority: {priority_label}`"
-                )
+            pet_rows = [
+                {
+                    "Time":      e["scheduled_time"] if e["scheduled_time"] else "--:--",
+                    "Task":      e["task"],
+                    "Type":      e["type"],
+                    "Duration":  f"{e['duration']} min",
+                    "Priority":  Scheduler._priority_label(e["priority"]),
+                    "Frequency": e.get("frequency", "once"),
+                }
+                for e in pet_entries
+            ]
+            st.table(pet_rows)
+
     else:
-        st.warning("No tasks could be scheduled. Try increasing available hours or reducing task durations.")
+        st.warning("⚠️ No tasks could be scheduled. Try increasing your available hours or shortening task durations.")

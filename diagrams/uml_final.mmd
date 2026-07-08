@@ -1,0 +1,74 @@
+classDiagram
+  class Owner {
+    +String name
+    +String work_schedule
+    +int available_hours
+    +String preferred_morning_start
+    +String preferred_evening_end
+    +List pets
+    +get_name()
+    +get_availability()
+    +set_availability()
+    +add_pet()
+    +get_all_tasks()
+  }
+
+  class Pet {
+    +String name
+    +String species
+    +String gender
+    +int age
+    +String health_history
+    +String medical_needs
+    +Owner owner
+    +List tasks
+    +get_name()
+    +get_species()
+    +get_age()
+    +get_medical_needs()
+    +add_task()
+    +get_tasks()
+    +get_pending_tasks()
+    +mark_task_complete()
+  }
+
+  class Task {
+    +String name
+    +int duration
+    +int priority
+    +String type
+    +String scheduled_time
+    +bool is_completed
+    +String frequency
+    +date due_date
+    +get_name()
+    +get_duration()
+    +get_priority()
+    +get_type()
+    +set_priority()
+    +mark_complete()
+  }
+
+  class Scheduler {
+    +Owner owner
+    +List pets
+    +List tasks
+    +List generated_plan
+    +String reasoning
+    +generate_plan()
+    +detect_conflicts()
+    +sort_by_time()
+    +filter_plan()
+    +explain_reasoning()
+    +display_plan()
+    -_collect_tasks()
+    -_priority_label()
+    -_time_to_minutes()
+  }
+
+  Owner "1" --> "1..*" Pet : owns
+  Pet "1" --> "0..*" Task : has
+  Pet "1" --> "0..*" Task : mark_task_complete
+  Scheduler "1" --> "1" Owner : reads availability
+  Scheduler "1" --> "1..*" Pet : schedules for
+  Scheduler "1" --> "0..*" Task : organizes

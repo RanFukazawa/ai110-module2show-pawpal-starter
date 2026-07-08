@@ -7,6 +7,26 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import List, Optional
 from datetime import date, timedelta
+
+
+def normalize_time(time_str: str) -> str:
+    """
+    Normalize a user-entered time string to HH:MM format.
+    Accepts: "8:00", "8:5", "08:00", "18:00". Returns "" for empty or invalid input.
+    Examples: "8:00" -> "08:00", "9:5" -> "09:05", "" -> ""
+    """
+    if not time_str or not time_str.strip():
+        return ""
+    try:
+        parts = time_str.strip().split(":")
+        if len(parts) != 2:
+            return ""
+        hours, minutes = int(parts[0]), int(parts[1])
+        if not (0 <= hours <= 23 and 0 <= minutes <= 59):
+            return ""
+        return f"{hours:02d}:{minutes:02d}"
+    except ValueError:
+        return ""
  
  
 @dataclass
@@ -149,7 +169,11 @@ class Task:
     is_completed: bool = False
     frequency: str = "once"           # "once", "daily", "weekly"
     due_date: date = field(default_factory=date.today)
- 
+
+    def __post_init__(self):
+        """Normalize scheduled_time to HH:MM format on creation."""
+        self.scheduled_time = normalize_time(self.scheduled_time)
+
     def get_name(self) -> str:
         """Return the task name."""
         return self.name
@@ -224,6 +248,7 @@ class Scheduler:
                     "priority": task.priority,
                     "scheduled_time": task.scheduled_time,
                     "is_completed": task.is_completed,
+                    "frequency": task.frequency,
                 })
                 scheduled_minutes += task.duration
             else:

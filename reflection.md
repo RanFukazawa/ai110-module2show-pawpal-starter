@@ -75,10 +75,14 @@ This tradeoff is reasonable for a first version because enforcing a time window 
 - How did you use AI tools during this project (for example: design brainstorming, debugging, refactoring)?
 - What kinds of prompts or questions were most helpful?
 
+AI tools were used throughout all phases of this project roughly equally — from early design brainstorming through to debugging and refactoring. In the design phase, AI helped translate vague requirements into concrete class structures and UML diagrams. During implementation, it generated method bodies based on the skeleton classes and docstrings already established. In later phases it helped debug errors like the `normalize_time` import issue and refactor logic such as the duplicate `detect_conflicts` methods. The most helpful prompts were specific and context-grounded — for example, attaching the current file and asking "based on this implementation, what should change in the UML?" rather than asking generic questions. Asking for explanations before code (e.g. "what is `st.session_state` and why do I need it?") also consistently produced better understanding than jumping straight to implementation.
+
 **b. Judgment and verification**
 
 - Describe one moment where you did not accept an AI suggestion as-is.
 - How did you evaluate or verify what the AI suggested?
+
+One clear moment of pushing back was when AI replaced the `st.table()` plan display with a checkbox-and-markdown-row approach. While the feature itself was valid — checkboxes for task completion and styled priority badges — the resulting layout was visually noisier and harder to scan than the original table. After seeing both versions running in the browser, the table version was clearly more readable for a schedule with multiple columns. The AI suggestion was reversed and `st.table()` was restored. This was verified simply by running both versions and comparing them directly in the UI, rather than accepting the change because it was technically more feature-rich.
 
 ---
 
@@ -89,10 +93,14 @@ This tradeoff is reasonable for a first version because enforcing a time window 
 - What behaviors did you test?
 - Why were these tests important?
 
+The test suite covered five core behaviours: task completion (`mark_complete()` sets the flag correctly and is idempotent), task addition (adding tasks to a pet increases count and tasks are retrievable), sorting correctness (`sort_by_time()` returns tasks in chronological order with timeless tasks at the end), recurrence logic (daily and weekly tasks auto-create the next occurrence with the correct due date; one-time tasks return `None`), and conflict detection (overlapping tasks are flagged with the correct overlap duration; clean schedules return an empty list). These were important because they represent the core of the scheduler's value — if any of them broke silently, the app could produce incorrect or misleading plans without any visible error.
+
 **b. Confidence**
 
 - How confident are you that your scheduler works correctly?
 - What edge cases would you test next if you had more time?
+
+Confidence level is 4 out of 5. The 21 tests cover all core behaviours across both happy paths and edge cases such as empty plans, timeless tasks, and idempotent operations. The remaining uncertainty is that `preferred_morning_start` and `preferred_evening_end` are stored but not enforced in scheduling, so that logic path has no coverage. If given more time, the next edge cases to test would be: a task whose duration exactly fills the remaining available minutes, a pet with all tasks already completed (empty pending list), and what happens when two tasks have identical priority, duration, and scheduled time.
 
 ---
 
@@ -102,10 +110,16 @@ This tradeoff is reasonable for a first version because enforcing a time window 
 
 - What part of this project are you most satisfied with?
 
+The part of the project most worth being satisfied with is the OOP class design. Starting from a brainstorm and UML sketch, the four classes — `Owner`, `Pet`, `Task`, and `Scheduler` — each ended up with a clear, single responsibility and clean boundaries between them. The decision to put recurrence logic in `Pet.mark_task_complete()` rather than in `Task` itself, and to keep all scheduling logic in `Scheduler` rather than spreading it across other classes, made the codebase easier to extend and test throughout the project.
+
 **b. What you would improve**
 
 - If you had another iteration, what would you improve or redesign?
 
+The most meaningful improvement would be building a smarter conflict resolver that does more than warn — one that actually suggests fixes. For example, if two tasks overlap by 5 minutes, the resolver could suggest pushing the second task's start time forward, or offer to swap the order of two lower-priority tasks to eliminate the conflict. This would move the app from passive reporter to active assistant, which is closer to what "smart pet care management" actually promises.
+
 **c. Key takeaway**
 
 - What is one important thing you learned about designing systems or working with AI on this project?
+
+The most important thing learned about working with AI on a design project is that the AI is most useful when you already have a mental model of what you're building. When questions were vague, AI filled in the gaps with reasonable but sometimes wrong assumptions — like designing `Owner` around contact details instead of scheduling availability. When questions were specific and grounded in the actual system being built, the output was much more precise and required far less revision. Being the lead architect means knowing enough to ask the right questions, evaluate what comes back, and push back when the answer doesn't fit — not just accepting the first reasonable-looking output.
