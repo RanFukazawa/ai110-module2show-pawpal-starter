@@ -53,10 +53,18 @@ Brainstorming
 - What constraints does your scheduler consider (for example: time, priority, preferences)?
 - How did you decide which constraints mattered most?
 
+The scheduler currently considers three constraints: the owner's total available hours, task priority, and each task's scheduled time. Available hours sets the budget — tasks are fitted into the day until the time runs out. Priority determines the order tasks are considered, ensuring high-priority tasks like medication and feeding are scheduled before lower-priority ones like grooming or enrichment. Scheduled time is used after the plan is built to sort tasks chronologically, so the final output reflects the actual flow of the day.
+
+The decision to weight priority most heavily was driven by pet health — a dog's medication matters more than a grooming session regardless of how much time is available, so priority felt like the most important constraint to enforce first.
+
 **b. Tradeoffs**
 
 - Describe one tradeoff your scheduler makes.
 - Why is that tradeoff reasonable for this scenario?
+
+One tradeoff the scheduler makes is that it stores owner preferences — specifically `preferred_morning_start` and `preferred_evening_end` — but does not use them when generating the plan. The scheduler only checks whether a task fits within the owner's total available hours, not whether it falls within their preferred time window. This means a task scheduled at 06:00 would not be flagged even if the owner's morning start is 07:00.
+
+This tradeoff is reasonable for a first version because enforcing a time window would require significantly more logic in `generate_plan()` — each task's `scheduled_time` would need to be validated against the owner's window, and tasks outside it would need to be either rejected or rescheduled. Collecting and storing the preferences now means that logic can be added later without changing the data model or the UI.
 
 ---
 

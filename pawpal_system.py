@@ -6,6 +6,7 @@ Full implementation of all four core classes.
 from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import List, Optional
+from datetime import date, timedelta
  
  
 @dataclass
@@ -108,6 +109,27 @@ class Pet:
     def get_pending_tasks(self) -> List[Task]:
         """Return only tasks that have not been completed."""
         return [t for t in self.tasks if not t.is_completed]
+
+    def mark_task_complete(self, task: Task) -> Optional[Task]:
+        """Mark a task complete and auto-create the next occurrence for recurring tasks."""
+        task.mark_complete()
+        if task.frequency == "daily":
+            next_due = task.due_date + timedelta(days=1)
+        elif task.frequency == "weekly":
+            next_due = task.due_date + timedelta(weeks=1)
+        else:
+            return None
+        next_task = Task(
+            name=task.name,
+            duration=task.duration,
+            priority=task.priority,
+            type=task.type,
+            scheduled_time=task.scheduled_time,
+            frequency=task.frequency,
+            due_date=next_due,
+        )
+        self.add_task(next_task)
+        return next_task
  
     def __str__(self) -> str:
         return (
@@ -125,6 +147,8 @@ class Task:
     type: str                         # "feeding", "walk", "medication", "grooming", "enrichment"
     scheduled_time: str = ""          # e.g. "08:00"
     is_completed: bool = False
+    frequency: str = "once"           # "once", "daily", "weekly"
+    due_date: date = field(default_factory=date.today)
  
     def get_name(self) -> str:
         """Return the task name."""
@@ -157,7 +181,7 @@ class Task:
         status = "✓" if self.is_completed else "○"
         return (
             f"[{status}] {self.name}{time_label} "
-            f"({self.duration} min, priority {self.priority})"
+            f"({self.duration} min, priority {self.priority}, {self.frequency}, due {self.due_date})"
         )
  
  
@@ -199,6 +223,7 @@ class Schedule:
                     "duration": task.duration,
                     "priority": task.priority,
                     "scheduled_time": task.scheduled_time,
+                    "is_completed": task.is_completed,
                 })
                 scheduled_minutes += task.duration
             else:
@@ -206,6 +231,9 @@ class Schedule:
  
         self.generated_plan = plan
         self.tasks = [pt[1] for pt in pet_task_pairs]
+
+        # Sort the final plan chronologically by scheduled_time
+        self.generated_plan = self.sort_by_time(self.generated_plan)
  
         # Build reasoning string
         priority_counts = {"high": 0, "medium": 0, "low": 0}
@@ -229,6 +257,88 @@ class Schedule:
  
         return self.generated_plan
  
+    def detect_conflicts(self) -> List[str]:
+        """
+        Scan the sorted plan for overlapping tasks.
+        A conflict occurs when a task's start time falls before the previous task finishes.
+        Returns a list of warning strings (empty list = no conflicts).
+        """
+        warnings = []
+        # Only check tasks that have a real scheduled_time
+        timed = [e for e in self.generated_plan if e["scheduled_time"]]
+
+        for i in range(1, len(timed)):
+            prev = timed[i - 1]
+            curr = timed[i]
+
+            # Convert "HH:MM" to total minutes for arithmetic
+            prev_start = self._time_to_minutes(prev["scheduled_time"])
+            prev_end   = prev_start + prev["duration"]
+            curr_start = self._time_to_minutes(curr["scheduled_time"])
+
+            if curr_start < prev_end:
+                overlap = prev_end - curr_start
+                warnings.append(
+                    f"⚠️  Conflict: [{curr['pet']}] '{curr['task']}' at {curr['scheduled_time']} "
+                    f"overlaps with [{prev['pet']}] '{prev['task']}' at {prev['scheduled_time']} "
+                    f"by {overlap} min."
+                )
+
+        return warnings
+
+    @staticmethod
+    def _time_to_minutes(time_str: str) -> int:
+        """Convert a 'HH:MM' string to total minutes since midnight."""
+        hours, minutes = map(int, time_str.split(":"))
+        return hours * 60 + minutes
+
+    @staticmethod
+    def sort_by_time(plan: List[dict]) -> List[dict]:
+        """Sort a plan list chronologically; tasks with no scheduled_time go to the end."""
+        return sorted(
+            plan,
+            # "99:99" sentinel sorts after any real HH:MM, pushing timeless tasks to the end
+            key=lambda entry: entry["scheduled_time"] if entry["scheduled_time"] else "99:99"
+        )
+
+    def filter_plan(
+        self,
+        pet_name: Optional[str] = None,
+        completed: Optional[bool] = None,
+    ) -> List[dict]:
+        """Return a filtered subset of the generated plan by pet name and/or completion status."""
+        result = self.generated_plan
+        if pet_name is not None:
+            result = [e for e in result if e["pet"].lower() == pet_name.lower()]
+        if completed is not None:
+            result = [e for e in result if e.get("is_completed", False) == completed]
+        return result
+
+    def detect_conflicts(self) -> List[str]:
+        """Scan the sorted plan for overlapping tasks; return a list of warning strings."""
+        warnings = []
+        timed = [e for e in self.generated_plan if e["scheduled_time"]]
+        for i in range(1, len(timed)):
+            prev = timed[i - 1]
+            curr = timed[i]
+            prev_start = self._time_to_minutes(prev["scheduled_time"])
+            prev_end   = prev_start + prev["duration"]
+            curr_start = self._time_to_minutes(curr["scheduled_time"])
+            if curr_start < prev_end:
+                overlap = prev_end - curr_start
+                warnings.append(
+                    f"⚠️  Conflict: [{curr['pet']}] '{curr['task']}' at {curr['scheduled_time']} "
+                    f"overlaps with [{prev['pet']}] '{prev['task']}' at {prev['scheduled_time']} "
+                    f"by {overlap} min."
+                )
+        return warnings
+
+    @staticmethod
+    def _time_to_minutes(time_str: str) -> int:
+        """Convert a 'HH:MM' string to total minutes since midnight."""
+        hours, minutes = map(int, time_str.split(":"))
+        return hours * 60 + minutes
+
     def explain_reasoning(self) -> str:
         """Return a human-readable explanation of how the plan was generated."""
         if not self.reasoning:
@@ -261,7 +371,14 @@ class Schedule:
             )
         print(f"\n  Total time: {total} min ({total // 60}h {total % 60}m)")
         print(f"  Reasoning: {self.reasoning}")
- 
+
+        # --- Conflict warnings ---
+        conflicts = self.detect_conflicts()
+        if conflicts:
+            print()
+            for warning in conflicts:
+                print(f"  {warning}")
+
         # --- Per-pet breakdown ---
         print(f"\n{'─'*52}")
         print("  Breakdown by pet")

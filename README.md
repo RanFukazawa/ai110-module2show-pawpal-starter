@@ -44,15 +44,13 @@ pip install -r requirements.txt
 
 ## 🖥️ Sample Output
 
-Paste a sample of your app's CLI or Streamlit output here so a reader can see what a generated plan looks like:
-
 ```
 ====================================================
   PawPal+ Daily Plan for Alex (Owner)
 ====================================================
-  07:05 — [Buddy] Heartworm pill (5 min) [priority: high]
   07:00 — [Luna] Breakfast (5 min) [priority: high]
   07:00 — [Buddy] Breakfast (10 min) [priority: high]
+  07:05 — [Buddy] Heartworm pill (5 min) [priority: high]
   07:30 — [Buddy] Morning walk (30 min) [priority: high]
   18:00 — [Buddy] Evening walk (30 min) [priority: high]
   19:00 — [Luna] Playtime (20 min) [priority: low]
@@ -61,13 +59,16 @@ Paste a sample of your app's CLI or Streamlit output here so a reader can see wh
   Total time: 115 min (1h 55m)
   Reasoning: Tasks were sorted by priority (high → medium → low), then by duration (shorter first). Owner 'Alex' has 3h (180 min) available on a office day. 7 task(s) scheduled (5 high, 0 medium, 2 low), using 115 min.
 
+  ⚠️  Conflict: [Buddy] 'Breakfast' at 07:00 overlaps with [Luna] 'Breakfast' at 07:00 by 5 min.
+  ⚠️  Conflict: [Buddy] 'Heartworm pill' at 07:05 overlaps with [Buddy] 'Breakfast' at 07:00 by 5 min.
+
 ────────────────────────────────────────────────────
   Breakdown by pet
 ────────────────────────────────────────────────────
 
   Buddy (Dog, 3 yr old Male)
-    07:05 — Heartworm pill (5 min) [priority: high]
     07:00 — Breakfast (10 min) [priority: high]
+    07:05 — Heartworm pill (5 min) [priority: high]
     07:30 — Morning walk (30 min) [priority: high]
     18:00 — Evening walk (30 min) [priority: high]
 
@@ -77,6 +78,20 @@ Paste a sample of your app's CLI or Streamlit output here so a reader can see wh
     --:-- — Brushing (15 min) [priority: low]
 
 ====================================================
+
+=== Conflict detection (direct call) ===
+  2 conflict(s) found:
+  ⚠️  Conflict: [Buddy] 'Breakfast' at 07:00 overlaps with [Luna] 'Breakfast' at 07:00 by 5 min.
+  ⚠️  Conflict: [Buddy] 'Heartworm pill' at 07:05 overlaps with [Buddy] 'Breakfast' at 07:00 by 5 min.
+
+=== Recurring task demo ===
+Today: 2026-07-07
+
+Marked 'Breakfast' complete (frequency: daily)
+Auto-created next occurrence: due 2026-07-08
+
+Marked 'Heartworm pill' complete (frequency: once)
+New task created: False  ← expected False for 'once'
 ```
 
 ## 🧪 Testing PawPal+
@@ -97,14 +112,13 @@ Sample test output:
 
 ## 📐 Smarter Scheduling
 
-> Fill in once you've implemented scheduling logic.
-
 | Feature | Method(s) | Notes |
 |---------|-----------|-------|
-| Task sorting | | e.g., by priority, duration |
-| Filtering | | e.g., skip tasks if time runs out |
-| Conflict handling | | e.g., overlapping time slots |
-| Recurring tasks | | e.g., daily vs. weekly |
+| Task sorting | `Schedule.sort_by_time()` | Sorts tasks chronologically by `scheduled_time` (HH:MM); tasks with no scheduled time are pushed to the end |
+| Task prioritisation | `Schedule.generate_plan()` | Tasks are sorted by priority (1 = high → 5 = low) then by duration (shorter first) before being fitted into the owner's available hours |
+| Filtering | `Schedule.filter_plan()` | Filters the generated plan by pet name, completion status, or both; returns a subset of `generated_plan` |
+| Conflict detection | `Schedule.detect_conflicts()` | Scans the sorted plan for overlapping time slots; returns warning messages when a task starts before the previous one finishes |
+| Recurring tasks | `Pet.mark_task_complete()` | When a daily or weekly task is marked complete, a new instance is automatically created with the next due date using `timedelta` |
 
 ## 📸 Demo Walkthrough
 
