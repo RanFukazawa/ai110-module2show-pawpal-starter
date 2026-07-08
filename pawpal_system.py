@@ -186,7 +186,7 @@ class Task:
  
  
 @dataclass
-class Schedule:
+class Scheduler:
     """Sorts and fits all pet tasks within the owner's available hours to produce a daily plan."""
     owner: Owner
     pets: List[Pet] = field(default_factory=list)
@@ -313,31 +313,6 @@ class Schedule:
         if completed is not None:
             result = [e for e in result if e.get("is_completed", False) == completed]
         return result
-
-    def detect_conflicts(self) -> List[str]:
-        """Scan the sorted plan for overlapping tasks; return a list of warning strings."""
-        warnings = []
-        timed = [e for e in self.generated_plan if e["scheduled_time"]]
-        for i in range(1, len(timed)):
-            prev = timed[i - 1]
-            curr = timed[i]
-            prev_start = self._time_to_minutes(prev["scheduled_time"])
-            prev_end   = prev_start + prev["duration"]
-            curr_start = self._time_to_minutes(curr["scheduled_time"])
-            if curr_start < prev_end:
-                overlap = prev_end - curr_start
-                warnings.append(
-                    f"⚠️  Conflict: [{curr['pet']}] '{curr['task']}' at {curr['scheduled_time']} "
-                    f"overlaps with [{prev['pet']}] '{prev['task']}' at {prev['scheduled_time']} "
-                    f"by {overlap} min."
-                )
-        return warnings
-
-    @staticmethod
-    def _time_to_minutes(time_str: str) -> int:
-        """Convert a 'HH:MM' string to total minutes since midnight."""
-        hours, minutes = map(int, time_str.split(":"))
-        return hours * 60 + minutes
 
     def explain_reasoning(self) -> str:
         """Return a human-readable explanation of how the plan was generated."""

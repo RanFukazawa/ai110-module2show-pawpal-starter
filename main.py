@@ -4,7 +4,7 @@ Testing ground for verifying backend logic in the terminal.
 Run with: python main.py
 """
 
-from pawpal_system import Owner, Pet, Task, Schedule
+from pawpal_system import Owner, Pet, Task, Scheduler
 from datetime import date
 
 
@@ -40,7 +40,7 @@ owner.add_pet(dog)
 owner.add_pet(cat)
 
 # --- 6. Generate and display schedule (conflict warnings appear automatically) ---
-scheduler = Schedule(owner=owner)
+scheduler = Scheduler(owner=owner)
 scheduler.generate_plan()
 scheduler.display_plan()
 

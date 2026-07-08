@@ -4,7 +4,7 @@ Connects the frontend to the backend logic in pawpal_system.py.
 """
 
 import streamlit as st
-from pawpal_system import Owner, Pet, Task, Schedule
+from pawpal_system import Owner, Pet, Task, Scheduler
 
 # ---------------------------------------------------------------------------
 # Page config
@@ -163,7 +163,7 @@ if st.button("Generate schedule", type="primary"):
     elif not any(p.get_tasks() for p in st.session_state.pets):
         st.warning("Please add at least one task.")
     else:
-        scheduler = Schedule(owner=st.session_state.owner)
+        scheduler = Scheduler(owner=st.session_state.owner)
         scheduler.generate_plan()
         st.session_state.schedule = scheduler
 
@@ -178,7 +178,7 @@ if st.session_state.schedule:
         st.markdown("#### Combined timeline")
         for entry in plan:
             time_label     = entry["scheduled_time"] if entry["scheduled_time"] else "--:--"
-            priority_label = Schedule._priority_label(entry["priority"])
+            priority_label = Scheduler._priority_label(entry["priority"])
             st.markdown(
                 f"`{time_label}` — **[{entry['pet']}]** {entry['task']} "
                 f"({entry['duration']} min) `priority: {priority_label}`"
@@ -198,7 +198,7 @@ if st.session_state.schedule:
             st.markdown(f"**{pet.name}** ({pet.species}, {pet.age} yr old {pet.gender})")
             for entry in pet_entries:
                 time_label     = entry["scheduled_time"] if entry["scheduled_time"] else "--:--"
-                priority_label = Schedule._priority_label(entry["priority"])
+                priority_label = Scheduler._priority_label(entry["priority"])
                 st.markdown(
                     f"&nbsp;&nbsp;&nbsp;&nbsp;`{time_label}` — {entry['task']} "
                     f"({entry['duration']} min) `priority: {priority_label}`"

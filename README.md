@@ -98,17 +98,47 @@ New task created: False  ← expected False for 'once'
 
 ```bash
 # Run the full test suite:
-pytest
+python -m pytest tests/test_pawpal.py
 
-# Run with coverage:
-pytest --cov
+# Run with verbose output (shows each test name):
+python -m pytest tests/test_pawpal.py -v
+
+# Run a specific test class only:
+python -m pytest tests/test_pawpal.py::TestConflictDetection -v
+
+# Run with coverage (requires pytest-cov):
+python -m pytest --cov
 ```
 
-Sample test output:
+### What the tests cover
+
+| Test class | What it verifies |
+|---|---|
+| `TestTaskCompletion` | `mark_complete()` sets the flag correctly and is idempotent |
+| `TestTaskAddition` | Adding tasks to a pet increases count and tasks are retrievable |
+| `TestSortByTime` | Tasks are returned in chronological order; timeless tasks go to the end |
+| `TestRecurringTasks` | Daily/weekly tasks auto-create the next occurrence; one-time tasks do not |
+| `TestConflictDetection` | Overlapping and same-time tasks are flagged; clean schedules return no warnings |
+
+### Sample test output
 
 ```
-# Paste your pytest output here
+======================================================= test session starts ========================================================
+platform darwin -- Python 3.14.2, pytest-9.1.1, pluggy-1.6.0
+rootdir: /Users/ranfukazawa/Desktop/CodePath/AI110/Project/ai110-module2show-pawpal-starter
+plugins: anyio-4.14.0
+collected 21 items
+
+tests/test_pawpal.py .....................                                                                                   [100%]
+
+======================================================== 21 passed in 0.05s ========================================================
 ```
+
+### Confidence level
+
+⭐⭐⭐⭐ (4/5)
+
+The 21 tests cover all core behaviours — task management, sorting, recurrence, and conflict detection — across both happy paths and edge cases. The rating is 4 rather than 5 because the owner's time window preferences (`preferred_morning_start` / `preferred_evening_end`) are stored but not yet enforced in scheduling, so that logic path has no test coverage yet.
 
 ## 📐 Smarter Scheduling
 
